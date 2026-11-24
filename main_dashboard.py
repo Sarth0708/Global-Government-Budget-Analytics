@@ -5,15 +5,26 @@ import urllib.parse
 import plotly.express as px
 import plotly.graph_objects as go
 import numpy as np
+import os
 
 st.set_page_config(page_title="Global Budget Analytics Core", layout="wide")
 
 def get_engine():
-    password_quoted = urllib.parse.quote_plus("Sarthak@12")
-    return create_engine(
-        f"mysql+pymysql://root:{password_quoted}@localhost/global_budget_db"
-    )
+    database_url = os.environ.get("DATABASE_URL")
 
+    if not database_url:
+        raise ValueError("DATABASE_URL is not configured in Render")
+
+    return create_engine(
+        database_url,
+        connect_args={
+            "ssl": {
+                "ca": "/etc/secrets/ca.pem"
+            }
+        },
+        pool_pre_ping=True,
+        pool_recycle=3600
+    )
 st.title("Global Government Budget Analytics Core")
 st.markdown("An interactive platform exploring public finance shifts, sector dominance, and predictive trajectories.")  
 
@@ -49,7 +60,7 @@ with tab_macro:
         fig = px.line(df_macro, x='year', y='total_budget_billions_usd',
                       title=f"Historical Expenditure Strategy: {selected_country}",
                       template="plotly_dark", labels={"total_budget_billions_usd": "Total Budget (Billions USD)"})
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig,width="stretch")
     else:
         st.info("No records found for the selection.")
 
@@ -71,11 +82,11 @@ with tab_sectors:
         with col_c1:
             fig_area = px.area(df_sec, x='year', y='allocated_percentage', color='sector_name',
                                title="Structural Budget Shifts Over Time", template="plotly_dark")
-            st.plotly_chart(fig_area, use_container_width=True)
+            st.plotly_chart(fig_area,width="stretch")
         with col_c2:
             fig_box = px.box(df_sec, x='sector_name', y='allocated_percentage',color='sector_name',
                              title="Variance and Spread Across Sectors", template="plotly_dark")
-            st.plotly_chart(fig_box, use_container_width=True)
+            st.plotly_chart(fig_box,width="stretch")
     else:
         st.info("No Sector records found.")
 with tab_anomalies:
@@ -94,7 +105,7 @@ with tab_anomalies:
 
             st.write("### Flagged Fiscal Outlier Periods (Z-Score > 1.96):")
             if not anomalies.empty:
-                st.dataframe(anomalies.style.background_gradient(cmap='Reds', subset=['total_budget_billions_usd']), use_container_width=True)
+                st.dataframe(anomalies.style.background_gradient(cmap='Reds', subset=['total_budget_billions_usd']),width="stretch")
             else:
                 st.success("Excellent budget structural stability! No extreme statistical outliers were discovered.")
             
@@ -128,7 +139,7 @@ with tab_research_lab:
             labels=dict(color="Correlation Coefficient"),
             template="plotly_dark",
         )
-        st.plotly_chart(fig_heat, use_container_width=True)
+        st.plotly_chart(fig_heat,width="stretch")
         # Volatility Index & Rolling Statistics ---
     st.subheader("Volatility Index & Rolling Statistics")
     engine = get_engine()
@@ -150,10 +161,10 @@ with tab_research_lab:
         fig_vol = go.Figure()
         fig_vol.add_trace(go.Scatter(x=df_vol.index, y=df_vol['volatility_index'], mode='lines+markers', name='Volatility Index', line=dict(color='#FFA500')))
         fig_vol.update_layout(template='plotly_dark', yaxis_title='Volatility Index (%)')
-        st.plotly_chart(fig_vol, use_container_width=True)
+        st.plotly_chart(fig_vol,width="stretch")
 
         st.write("Recent rolling statistics (non-null rows):")
-        st.dataframe(df_vol.dropna().tail(10), use_container_width=True)
+        st.dataframe(df_vol.dropna().tail(10),width="stretch")
     else:
         st.info("No enough historical data to compute volatility metrics for this country.")
         
@@ -182,10 +193,10 @@ with tab_research_lab:
             fig_proj.add_trace(go.Scatter(x=x, y=y, mode='markers+lines', name='Historical Data', line=dict(color='#888888')))
             fig_proj.add_trace(go.Scatter(x=year_future, y=proj_vals, mode='lines', name='Projection', line=dict(color='#00FF00',dash='dash')))
             fig_proj.update_layout(title=f"Polynomial Projection (deg {proj_degree}) for {selected_country}", template="plotly_dark", xaxis_title="Year", yaxis_title="Budget (Billions USD)")
-            st.plotly_chart(fig_proj, use_container_width=True)
+            st.plotly_chart(fig_proj,width="stretch")
             
             df_proj_out = pd.DataFrame({'year': year_future, 'projected_budget': proj_vals})
-            st.dataframe(df_proj_out.style.format({'projected_budget': '${:,.2f}'}), use_container_width=True)
+            st.dataframe(df_proj_out.style.format({'projected_budget': '${:,.2f}'}),width="stretch")
         else:
             st.warning("Not enough historical points for the selected polynomial degree.")
             
