@@ -200,3 +200,4 @@ with tab_research_lab:
         else:
             st.warning("Not enough historical points for the selected polynomial degree.")
             
+
