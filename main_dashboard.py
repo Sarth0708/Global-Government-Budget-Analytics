@@ -105,7 +105,7 @@ with tab_anomalies:
 
             st.write("### Flagged Fiscal Outlier Periods (Z-Score > 1.96):")
             if not anomalies.empty:
-                st.dataframe(anomalies.style.background_gradient(cmap='Reds', subset=['total_budget_billions_usd']),width="stretch")
+                st.dataframe(anomalies, width="stretch")
             else:
                 st.success("Excellent budget structural stability! No extreme statistical outliers were discovered.")
             
